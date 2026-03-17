@@ -144,24 +144,6 @@
 
     .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 20px; }
 
-    /* ── Steps ── */
-    .steps { counter-reset: s; list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
-    .steps li {
-      counter-increment: s;
-      position: relative; padding: 11px 16px 11px 44px;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: 8px; font-size: 15px; color: var(--muted); line-height: 1.5;
-    }
-    .steps li::before {
-      content: counter(s);
-      position: absolute; left: 14px; top: 11px;
-      width: 20px; height: 20px; border-radius: 50%;
-      background: var(--border); display: flex;
-      align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 700; color: var(--text);
-    }
-    .steps li strong { color: var(--text); }
-
     /* ── Invite box ── */
     .invite-box {
       background: var(--bg);
@@ -181,6 +163,28 @@
     .invite-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
     .invite-note { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
     .invite-note code { background: var(--border); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+    /* ── Admin exists box ── */
+    .admin-exists-box {
+      background: var(--bg);
+      border: 1px solid var(--warning);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .admin-exists-box h3 { font-size: 15px; font-weight: 600; color: #fde68a; margin-bottom: 8px; }
+    .admin-exists-box p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+    /* ── Dashboard box ── */
+    .dashboard-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .dashboard-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .dashboard-box p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
 
     /* ── Reset section ── */
     .reset-box {
@@ -230,17 +234,8 @@
     ══════════════════════════════════════════════ -->
     <div class="tab-panel active" id="panel-setup">
 
-      <div class="section-label">How to deploy</div>
-      <ol class="steps">
-        <li>In Railway, open this service → click <strong>Variables</strong> → add the required vars below.</li>
-        <li>For <code>BETTER_AUTH_SECRET</code> set the value to <code>${{secret(32)}}</code> — Railway generates it automatically.</li>
-        <li>For <code>DATABASE_URL</code> use <code>${{Postgres.DATABASE_URL}}</code> to reference your Postgres service.</li>
-        <li>Click <strong>Refresh</strong> below until all required vars are green, then click <strong>Launch Paperclip</strong>.</li>
-        <li>Switch to the <strong>Manage</strong> tab — copy the bootstrap invite link and register your admin account.</li>
-        <li>Once registered, set <code>PAPERCLIP_AUTH_DISABLE_SIGN_UP=true</code> in Railway Variables to lock down signups.</li>
-      </ol>
-
       <div class="section-label">Environment variables</div>
+
       <div id="setup-banner" class="banner info">
         <span class="spinner"></span>
         <span>Checking environment variables...</span>
@@ -248,14 +243,13 @@
       <div class="var-list" id="var-list"></div>
 
       <div class="actions">
-        <button class="btn btn-primary" id="launch-btn" disabled onclick="launch()">🚀 Launch Paperclip</button>
+        <button class="btn btn-primary" id="launch-btn" disabled onclick="goToManage()">▶️ Go to Manage</button>
         <button class="btn btn-secondary" onclick="loadStatus()">🔄 Refresh</button>
-        <span class="text-muted" id="launch-note" style="display:none">Already launched — switch to Manage tab.</span>
+        <span class="text-muted" id="launch-note" style="display:none">Paperclip is running — switch to the Manage tab.</span>
       </div>
 
-      <div id="launch-progress" style="display:none; margin-top:16px;" class="banner info">
-        <span class="spinner"></span>
-        <span id="launch-msg">Launching Paperclip...</span>
+      <div id="setup-hint" class="banner info" style="display:none; margin-top:16px;">
+        💡 If any variables are missing, add them in Railway → <strong>Variables</strong> tab, then click <strong>Refresh</strong>.
       </div>
 
     </div>
@@ -274,9 +268,10 @@
       </div>
 
       <div id="invite-not-launched" class="banner warn" style="display:none">
-        ⚠️ Paperclip hasn't been launched yet. Go to the Setup tab and click Launch first.
+        ⚠️ Paperclip hasn't been launched yet. Go to the Setup tab and verify environment variables first.
       </div>
 
+      <!-- Shown when invite URL is available -->
       <div id="invite-box" class="invite-box" style="display:none">
         <h3>✅ Paperclip is running — register your admin account:</h3>
         <div class="url-row">
@@ -285,14 +280,29 @@
         </div>
         <div class="invite-actions">
           <a id="invite-link" href="#" target="_blank">
-            <button class="btn btn-primary">🔗 Open in new tab</button>
+            <button class="btn btn-primary">🔗 Open invite link</button>
           </a>
           <button class="btn btn-ghost" id="rotate-btn" onclick="rotateInvite(this)">🔄 Rotate link</button>
         </div>
-        <p class="invite-note">
-          After registering, go to Railway Variables → add <code>PAPERCLIP_AUTH_DISABLE_SIGN_UP=true</code> → redeploy.<br>
-          To delete user accounts or start fresh, delete the Postgres service in Railway and add a new one.
-        </p>
+      </div>
+
+      <!-- Shown when admin already exists (no invite generated) -->
+      <div id="admin-exists-box" class="admin-exists-box" style="display:none">
+        <h3>⚠️ An admin account already exists</h3>
+        <p id="admin-exists-msg">Paperclip skipped generating a bootstrap invite because an admin is already registered. You can log in directly from the dashboard below.</p>
+        <button class="btn btn-ghost" id="force-rotate-btn" onclick="rotateInvite(this)">🔄 Generate new invite anyway</button>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Dashboard link -->
+      <div class="section-label">Dashboard</div>
+      <div class="dashboard-box" id="dashboard-box">
+        <h3>🏠 Open Paperclip Dashboard</h3>
+        <p>Once you've registered or logged in as admin, use this to access your Paperclip dashboard directly.</p>
+        <a id="dashboard-link" href="/" target="_blank">
+          <button class="btn btn-primary">🚀 Open Dashboard</button>
+        </a>
       </div>
 
       <hr class="divider" />
@@ -324,8 +334,8 @@
 <script>
   // ── State ──────────────────────────────────────────────────────────────────
 
-  let appReady   = false;  // config + env vars all good
-  let pcReady    = false;  // paperclip process is up
+  let appReady   = false;
+  let pcReady    = false;
   let inviteUrl  = null;
   let invitePoll = null;
 
@@ -338,6 +348,15 @@
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('panel-' + name).classList.add('active');
     if (name === 'manage') refreshManage();
+  }
+
+  function goToManage() {
+    // Auto-launch if not already running, then switch to manage tab
+    if (!pcReady) {
+      launchAndSwitchToManage();
+    } else {
+      showTab('manage');
+    }
   }
 
   // ── Status polling ─────────────────────────────────────────────────────────
@@ -359,7 +378,7 @@
 
   function updateHeader(ready, pcReady) {
     const sub = document.getElementById('header-subtitle');
-    if (!ready)   sub.textContent = 'Configure environment variables to get started.';
+    if (!ready)   sub.textContent = 'Ensure all required environment variables are set.';
     else if (!pcReady) sub.textContent = 'Paperclip is starting up...';
     else          sub.textContent = 'Paperclip is running.';
   }
@@ -381,51 +400,53 @@
     const btn     = document.getElementById('launch-btn');
     const note    = document.getElementById('launch-note');
     const banner  = document.getElementById('setup-banner');
+    const hint    = document.getElementById('setup-hint');
     const missing = vars.filter(v => v.missing);
 
     if (appReady && pcReady) {
       // Already launched
       banner.className = 'banner success';
-      banner.textContent = '✅ Paperclip is running. Use the Manage tab to get your admin invite link.';
-      btn.style.display  = 'none';
-      note.style.display = 'inline';
+      banner.textContent = '✅ Paperclip is running. Switch to the Manage tab.';
+      btn.disabled = false;
+      btn.textContent = '▶️ Go to Manage';
+      hint.style.display = 'none';
+      note.style.display = 'none';
     } else if (missing.length === 0) {
       banner.className = 'banner success';
-      banner.textContent = '✅ All required variables are set. Ready to launch.';
+      banner.textContent = '✅ All required variables are set. Click "Go to Manage" to launch Paperclip.';
       btn.disabled = false;
+      hint.style.display = 'none';
     } else {
       banner.className = 'banner warn';
       banner.innerHTML = `⚠️ ${missing.length} required variable${missing.length > 1 ? 's' : ''} missing: <strong>${missing.map(v => v.key).join(', ')}</strong>`;
       btn.disabled = true;
+      hint.style.display = 'flex';
     }
   }
 
   // ── Launch ─────────────────────────────────────────────────────────────────
 
-  async function launch() {
-    document.getElementById('launch-btn').disabled = true;
-    const prog = document.getElementById('launch-progress');
-    prog.style.display = 'flex';
-    prog.style.alignItems = 'center';
-    prog.style.gap = '10px';
+  async function launchAndSwitchToManage() {
+    const btn = document.getElementById('launch-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Launching...';
 
     try {
       const res  = await fetch('/setup/launch', { method: 'POST' });
       const data = await res.json();
       if (data.already) {
-        document.getElementById('launch-msg').textContent = 'Already running — switch to Manage tab.';
+        showTab('manage');
         return;
       }
     } catch(_) {}
 
-    document.getElementById('launch-msg').textContent = 'Paperclip is starting up...';
-
-    // Poll status until paperclip is ready, then auto-switch to manage tab
+    // Poll status until paperclip is ready, then switch to manage tab
     const interval = setInterval(async () => {
       await loadStatus();
       if (pcReady) {
         clearInterval(interval);
-        prog.style.display = 'none';
+        btn.textContent = '▶️ Go to Manage';
+        btn.disabled = false;
         showTab('manage');
       }
     }, 2500);
@@ -436,10 +457,18 @@
   async function refreshManage() {
     await loadStatus();
 
-    const waiting    = document.getElementById('invite-waiting');
-    const notLaunched= document.getElementById('invite-not-launched');
-    const box        = document.getElementById('invite-box');
-    const statusDiv  = document.getElementById('manage-status');
+    // Auto-launch if env vars are set but Paperclip isn't running yet
+    if (allVarsSet() && !pcReady && !appReady) {
+      try {
+        await fetch('/setup/launch', { method: 'POST' });
+      } catch(_) {}
+    }
+
+    const waiting      = document.getElementById('invite-waiting');
+    const notLaunched  = document.getElementById('invite-not-launched');
+    const box          = document.getElementById('invite-box');
+    const adminExists  = document.getElementById('admin-exists-box');
+    const statusDiv    = document.getElementById('manage-status');
 
     // Status banner
     if (pcReady) {
@@ -454,10 +483,25 @@
     }
 
     // Invite section
-    if (!appReady) {
-      waiting.style.display     = 'none';
-      notLaunched.style.display = 'block';
-      box.style.display         = 'none';
+    if (!appReady && !pcReady) {
+      // Not launched yet — try to launch automatically
+      if (allVarsSet()) {
+        waiting.style.display     = 'flex';
+        notLaunched.style.display = 'none';
+        box.style.display         = 'none';
+        adminExists.style.display = 'none';
+
+        try {
+          await fetch('/setup/launch', { method: 'POST' });
+        } catch(_) {}
+
+        startInvitePoll();
+      } else {
+        waiting.style.display     = 'none';
+        notLaunched.style.display = 'block';
+        box.style.display         = 'none';
+        adminExists.style.display = 'none';
+      }
       return;
     }
 
@@ -465,22 +509,34 @@
 
     // Try fetching existing invite
     const inv = await fetchInvite();
-    if (inv) {
-      showInviteBox(inv);
+    if (inv.url) {
+      showInviteBox(inv.url);
+      adminExists.style.display = 'none';
+    } else if (inv.skippedReason) {
+      // Admin already exists — show message instead of invite
+      showAdminExistsBox(inv.skippedReason);
     } else {
-      waiting.style.display = 'flex';
-      box.style.display     = 'none';
+      waiting.style.display     = 'flex';
+      box.style.display         = 'none';
+      adminExists.style.display = 'none';
       startInvitePoll();
     }
+  }
+
+  function allVarsSet() {
+    // Check from the last rendered vars
+    const badges = document.querySelectorAll('.var-badge.missing');
+    return badges.length === 0;
   }
 
   async function fetchInvite() {
     try {
       const res  = await fetch('/setup/invite');
       const data = await res.json();
-      if (data.url) { inviteUrl = data.url; return data.url; }
+      if (data.url) { inviteUrl = data.url; return { url: data.url }; }
+      if (data.skippedReason) return { skippedReason: data.skippedReason };
     } catch(_) {}
-    return null;
+    return {};
   }
 
   function startInvitePoll() {
@@ -488,17 +544,24 @@
     let attempts = 0;
     invitePoll = setInterval(async () => {
       attempts++;
-      const url = await fetchInvite();
-      if (url) {
+      const inv = await fetchInvite();
+      if (inv.url) {
         clearInterval(invitePoll);
         invitePoll = null;
-        showInviteBox(url);
+        showInviteBox(inv.url);
+        document.getElementById('admin-exists-box').style.display = 'none';
+      } else if (inv.skippedReason) {
+        clearInterval(invitePoll);
+        invitePoll = null;
+        showAdminExistsBox(inv.skippedReason);
       }
+      // Also update status
+      await loadStatus();
       if (attempts > 90) {
         clearInterval(invitePoll);
         invitePoll = null;
         document.getElementById('invite-waiting').innerHTML =
-          '⚠️ Could not auto-retrieve invite URL. Check Railway deploy logs for a line containing <code>/invite/pcp_bootstrap_</code>';
+          '⚠️ Could not retrieve invite URL. Check Railway deploy logs for details.';
       }
     }, 2500);
   }
@@ -510,6 +573,13 @@
     document.getElementById('invite-link').href = url;
   }
 
+  function showAdminExistsBox(reason) {
+    document.getElementById('invite-waiting').style.display   = 'none';
+    document.getElementById('invite-box').style.display       = 'none';
+    document.getElementById('admin-exists-box').style.display = 'block';
+    document.getElementById('admin-exists-msg').textContent   = reason;
+  }
+
   function copyInvite(btn) {
     navigator.clipboard.writeText(document.getElementById('invite-url').value).then(() => {
       btn.textContent = '✅ Copied!';
@@ -519,17 +589,22 @@
 
   async function rotateInvite(btn) {
     btn.disabled = true;
-    btn.textContent = '⏳ Rotating...';
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Generating...';
     try {
       const res  = await fetch('/setup/rotate-invite', { method: 'POST' });
       const data = await res.json();
-      if (data.url) showInviteBox(data.url);
-      else alert('Rotation completed but no URL returned. Check Railway logs.');
+      if (data.url) {
+        showInviteBox(data.url);
+        document.getElementById('admin-exists-box').style.display = 'none';
+      } else {
+        alert('Rotation completed but no URL returned. Check Railway logs.');
+      }
     } catch(e) {
       alert('Failed to rotate invite. Check Railway logs.');
     } finally {
       btn.disabled = false;
-      btn.textContent = '🔄 Rotate link';
+      btn.textContent = originalText;
     }
   }
 

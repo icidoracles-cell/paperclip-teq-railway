@@ -30,6 +30,7 @@ const PAPERCLIP_PORT = 3099;
 const HOME = process.env.PAPERCLIP_HOME || "/paperclip";
 const CONFIG_PATH = join(HOME, "config.json");
 const INVITE_FILE = join(HOME, "bootstrap-invite.txt");
+const SKIP_REASON_FILE = join(HOME, "bootstrap-skip-reason.txt");
 
 // Strip ANSI escape sequences (colors, cursor, etc.) from strings
 function stripAnsi(str) {
@@ -38,9 +39,10 @@ function stripAnsi(str) {
 
 // ── Global state ─────────────────────────────────────────────────────────────
 
-let paperclipProc = null;   // child_process handle
-let paperclipReady = false;  // true once server says it's listening
-let inviteUrl = null;   // bootstrap CEO invite URL
+let paperclipProc = null;
+let paperclipReady = false;
+let inviteUrl = null;
+let bootstrapSkippedReason = null;
 
 // ── Ready check (derived from reality, no flags) ─────────────────────────────
 
@@ -141,13 +143,23 @@ function startPaperclip() {
     const text = chunk.toString();
     process.stdout.write(text);
 
-    // Capture bootstrap invite URL (strip ANSI codes first so \x1b[39m etc. aren't captured)
     const clean = stripAnsi(text);
+
+    // Capture bootstrap invite URL
     const match = clean.match(/https?:\/\/\S+\/invite\/pcp_bootstrap_\S+/);
     if (match) {
       inviteUrl = match[0].trim();
+      bootstrapSkippedReason = null;
       writeFileSync(INVITE_FILE, inviteUrl);
+      if (existsSync(SKIP_REASON_FILE)) unlinkSync(SKIP_REASON_FILE);
       console.log(`\n✅ Bootstrap invite URL saved to ${INVITE_FILE}\n`);
+    }
+
+    // Detect "admin already exists" — Paperclip skips invite generation
+    if (clean.includes("Instance already has an admin user")) {
+      bootstrapSkippedReason = "An admin account already exists. You can log in directly from the dashboard.";
+      writeFileSync(SKIP_REASON_FILE, bootstrapSkippedReason);
+      console.log(`\n⚠️ Bootstrap invite skipped: admin already exists.\n`);
     }
 
     // Detect ready
@@ -185,7 +197,9 @@ function resetSetup() {
   stopPaperclip();
   if (existsSync(CONFIG_PATH)) unlinkSync(CONFIG_PATH);
   if (existsSync(INVITE_FILE)) unlinkSync(INVITE_FILE);
+  if (existsSync(SKIP_REASON_FILE)) unlinkSync(SKIP_REASON_FILE);
   inviteUrl = null;
+  bootstrapSkippedReason = null;
   console.log("\n🔄 Setup reset. Config and invite file deleted.\n");
 }
 
@@ -273,11 +287,19 @@ function startServer() {
     }
 
     if (path === "/setup/invite" && method === "GET") {
+      // Try loading from memory, then file
       if (!inviteUrl && existsSync(INVITE_FILE)) {
         try { inviteUrl = stripAnsi(readFileSync(INVITE_FILE, "utf8")).trim(); } catch (_) { }
       }
+      if (!bootstrapSkippedReason && existsSync(SKIP_REASON_FILE)) {
+        try { bootstrapSkippedReason = readFileSync(SKIP_REASON_FILE, "utf8").trim(); } catch (_) { }
+      }
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ url: inviteUrl, paperclipReady }));
+      res.end(JSON.stringify({
+        url: inviteUrl,
+        paperclipReady,
+        skippedReason: bootstrapSkippedReason || null,
+      }));
       return;
     }
 
@@ -296,7 +318,7 @@ function startServer() {
     if (path === "/setup/rotate-invite" && method === "POST") {
       const proc = spawn(
         "node",
-        ["node_modules/.bin/paperclipai", "auth", "bootstrap-ceo"],
+        ["node_modules/.bin/paperclipai", "auth", "bootstrap-ceo", "--force"],
         { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, PAPERCLIP_CONFIG: CONFIG_PATH } }
       );
       let out = "";
@@ -307,6 +329,9 @@ function startServer() {
         if (match) {
           inviteUrl = match[0].trim();
           writeFileSync(INVITE_FILE, inviteUrl);
+          // Clear skip reason since we now have a fresh invite
+          bootstrapSkippedReason = null;
+          if (existsSync(SKIP_REASON_FILE)) unlinkSync(SKIP_REASON_FILE);
         }
       });
       proc.stderr.on("data", d => process.stderr.write(d));
