@@ -163,20 +163,39 @@ function launchPaperclip() {
   const configPath = join(PAPERCLIP_HOME, "config.json");
   if (!existsSync(configPath)) {
     const config = {
+      $meta: {
+        version: 1,
+        createdAt: new Date().toISOString(),
+        source: "railway-wrapper",
+      },
+      database: {
+        provider: "postgres",
+        connectionString: process.env.DATABASE_URL,
+      },
+      logging: {
+        mode: "file",
+        logDir: join(PAPERCLIP_HOME, "logs"),
+      },
       server: {
         deploymentMode: process.env.PAPERCLIP_DEPLOYMENT_MODE || "authenticated",
         deploymentExposure: process.env.PAPERCLIP_DEPLOYMENT_EXPOSURE || "public",
-        allowedHostnames: (process.env.PAPERCLIP_ALLOWED_HOSTNAMES || "").split(",").map((h) => h.trim()).filter(Boolean),
-        authPublicBaseUrl: process.env.PAPERCLIP_PUBLIC_URL || "",
-        authBaseUrlMode: "explicit",
+        allowedHostnames: (process.env.PAPERCLIP_ALLOWED_HOSTNAMES || "")
+          .split(",").map(h => h.trim()).filter(Boolean),
+      },
+      auth: {
+        baseUrlMode: "explicit",
+        publicBaseUrl: process.env.PAPERCLIP_PUBLIC_URL || "",
         disableSignUp: process.env.PAPERCLIP_AUTH_DISABLE_SIGN_UP === "true",
       },
-      secrets: {
-        provider: "env",
-      },
       storage: {
-        provider: "local",
-        localPath: join(PAPERCLIP_HOME, "storage"),
+        provider: "local_disk",
+        localDiskPath: join(PAPERCLIP_HOME, "storage"),
+      },
+      secrets: {
+        provider: "local_encrypted",
+        localEncrypted: {
+          keyFilePath: join(PAPERCLIP_HOME, "secrets.key"),
+        },
       },
     };
     writeFileSync(configPath, JSON.stringify(config, null, 2));
