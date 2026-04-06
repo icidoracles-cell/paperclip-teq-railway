@@ -12,7 +12,7 @@ Railway doesn't provide shell access during deployment, so the normal `pnpm pape
 
 ## Deploy to Railway
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/paperclip-ai-company)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/paperclip-ai-company?referralCode=QXdhdr&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
 ### Manual steps
 
