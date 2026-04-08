@@ -216,16 +216,32 @@
     .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
     .text-muted { color: var(--muted); font-size: 15px; }
 
-    /* ── Card footer ── */
-    .card-footer {
-      border-top: 1px solid var(--border);
-      padding: 14px 32px;
-      font-size: 13px;
+    /* ── Help button ── */
+    .help-btn {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 13px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
       color: var(--muted);
-      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .card-footer a { color: var(--muted); text-decoration: underline; }
-    .card-footer a:hover { color: var(--text); }
+    .help-btn:hover { color: var(--text); border-color: var(--accent); background: #1e1b4b; }
+    .help-btn .help-icon {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--muted); color: var(--bg);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .help-btn:hover .help-icon { background: var(--accent); }
   </style>
 </head>
 <body>
@@ -237,6 +253,10 @@
       <h1>Paperclip — Railway</h1>
       <p id="header-subtitle">Loading...</p>
     </div>
+    <a class="help-btn" href="https://github.com/praveen-ks-2001/paperclip-railway-template/issues" target="_blank">
+      <span class="help-icon">i</span>
+      Having issues?
+    </a>
   </div>
 
   <div class="tabs">
@@ -347,9 +367,6 @@
 
   </div>
 
-  <div class="card-footer">
-    Facing an issue with this template? <a href="https://github.com/praveen-ks-2001/paperclip-railway-template/issues" target="_blank">Raise an issue on GitHub</a>
-  </div>
 
 </div>
 
