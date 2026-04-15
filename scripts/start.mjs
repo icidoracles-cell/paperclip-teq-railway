@@ -68,6 +68,14 @@ function writeConfig() {
   mkdirSync(join(HOME, "logs"), { recursive: true });
   mkdirSync(join(HOME, "storage"), { recursive: true });
 
+  const envPath = join(HOME, ".env");
+  const envLines = [];
+  if (process.env.DATABASE_URL) {
+    envLines.push(`DATABASE_URL=${process.env.DATABASE_URL}`);
+  }
+  writeFileSync(envPath, envLines.join("\n") + "\n");
+  console.log(`   .env written to ${envPath}`);
+
   const config = {
     $meta: {
       version: 1,
@@ -76,7 +84,7 @@ function writeConfig() {
       source: "onboard",
     },
     database: {
-      provider: "postgres",
+      mode: "postgres",
       connectionString: process.env.DATABASE_URL,
     },
     logging: {
