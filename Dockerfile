@@ -18,6 +18,8 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
 
+RUN ln -sf /app/node_modules/.bin/gemini /usr/local/bin/gemini
+
 # Copy application code
 COPY . .
 
