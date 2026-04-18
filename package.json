@@ -1,0 +1,17 @@
+{
+  "name": "paperclip-railway",
+  "version": "1.0.0",
+  "description": "Railway wrapper for Paperclip TeQ",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "paperclipai": "latest",
+    "@google/gemini-cli": "latest"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
