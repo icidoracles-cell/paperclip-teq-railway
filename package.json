@@ -10,8 +10,7 @@
   "dependencies": {
     "paperclipai": "latest",
     "@anthropic-ai/claude-code": "latest",
-    "@openai/codex": "latest",
-    "@google/gemini-cli": "latest"
+    "@openai/codex": "latest"
   },
   "engines": {
     "node": ">=20"

@@ -23,8 +23,10 @@ RUN ln -sf /app/node_modules/.bin/gemini /usr/local/bin/gemini
 # Copy application code
 COPY . .
 
-# Give ownership of everything to the non-root user
-RUN chown -R paperclip:paperclip /app /home/paperclip
+# Make Gemini native shim executable and create symlink as 'gemini'
+RUN chmod +x scripts/gemini-shim.mjs && \
+    ln -sf /app/scripts/gemini-shim.mjs /app/scripts/gemini && \
+    chown -R paperclip:paperclip /app /home/paperclip
 
 # Copy and set up entrypoint (fixes volume mount ownership at runtime)
 COPY entrypoint.sh /entrypoint.sh

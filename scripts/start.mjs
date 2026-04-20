@@ -22,7 +22,9 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "
 import { spawn } from "child_process";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
 
+const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const PUBLIC_PORT = parseInt(process.env.PORT || "3100", 10);
@@ -43,6 +45,7 @@ let paperclipProc = null;
 let paperclipReady = false;
 let inviteUrl = null;
 let bootstrapSkippedReason = null;
+let dogfoodScheduler = null;
 
 // ── Ready check (derived from reality, no flags) ─────────────────────────────
 
@@ -51,6 +54,7 @@ const REQUIRED_VARS = [
   "BETTER_AUTH_SECRET",
   "PAPERCLIP_PUBLIC_URL",
   "PAPERCLIP_ALLOWED_HOSTNAMES",
+  "GEMINI_API_KEY",
 ];
 
 function isReady() {
@@ -131,6 +135,8 @@ function startPaperclip() {
 
   writeConfig();
 
+  const scriptsDir = join(__dirname);
+
   paperclipProc = spawn(
     "node",
     ["node_modules/.bin/paperclipai", "run"],
@@ -138,11 +144,13 @@ function startPaperclip() {
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
+        PATH: `${scriptsDir}:${process.env.PATH || ""}`,
         PAPERCLIP_CONFIG: CONFIG_PATH,
         PAPERCLIP_HOME: HOME,
         PORT: String(PAPERCLIP_PORT),
         HOST: "127.0.0.1",
         NODE_ENV: process.env.NODE_ENV || "production",
+        GEMINI_ADAPTER: "native",
       },
     }
   );
@@ -174,6 +182,7 @@ function startPaperclip() {
     if (!paperclipReady && (text.includes("Server listening on") || text.includes("server listening"))) {
       paperclipReady = true;
       console.log(`\n✅ Paperclip ready — proxying :${PUBLIC_PORT} → :${PAPERCLIP_PORT}\n`);
+      startDogfoodScheduler();
     }
   });
 
@@ -209,6 +218,21 @@ function resetSetup() {
   inviteUrl = null;
   bootstrapSkippedReason = null;
   console.log("\n🔄 Setup reset. Config and invite file deleted.\n");
+}
+
+// ── Dogfood scheduler (Starcaller TeQ) ────────────────────────────────────────
+
+function startDogfoodScheduler() {
+  if (dogfoodScheduler) return;
+
+  try {
+    const scheduler = require(join(__dirname, "dogfood_scheduler.js"));
+    console.log("\n🐕 Starting dogfood scheduler (TeQ tasks)...");
+    dogfoodScheduler = true;
+    scheduler.startScheduler();
+  } catch (e) {
+    console.log(`⚠️ Dogfood scheduler not started: ${e.message}`);
+  }
 }
 
 // ── Proxy ─────────────────────────────────────────────────────────────────────
@@ -264,6 +288,7 @@ function envVarStatus() {
     { key: "PAPERCLIP_HOME", required: false, label: "Paperclip Home", example: "/paperclip" },
     { key: "ANTHROPIC_API_KEY", required: false, label: "Anthropic API Key", example: "sk-ant-..." },
     { key: "OPENAI_API_KEY", required: false, label: "OpenAI API Key", example: "sk-..." },
+    { key: "GEMINI_API_KEY", required: true, label: "Gemini API Key", example: "AIza..." },
   ];
   return all.map(v => ({
     ...v,
@@ -354,6 +379,18 @@ function startServer() {
       resetSetup();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    // ── Dogfood status (always available) ──────────────────────────────────────
+
+    if (path === "/dogfood/status" && method === "GET") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        schedulerRunning: !!dogfoodScheduler,
+        adapterType: process.env.GEMINI_ADAPTER || "cli",
+        geminiKeySet: !!process.env.GEMINI_API_KEY,
+      }));
       return;
     }
 
