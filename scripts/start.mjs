@@ -41,6 +41,8 @@ function stripAnsi(str) {
 
 // ── Global state ─────────────────────────────────────────────────────────────
 
+if (!process.env.GEMINI_ADAPTER) process.env.GEMINI_ADAPTER = "native";
+
 let paperclipProc = null;
 let paperclipReady = false;
 let inviteUrl = null;
