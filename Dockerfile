@@ -24,3 +24,5 @@ ENV PORT=3100
 EXPOSE 3100
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["npm", "start"]
+
+# Force rebuild 2026-04-29 11:55
